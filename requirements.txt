@@ -1,0 +1,9 @@
+python-dotenv
+langgraph
+langgraph-cli[inmem]
+langgraph-api==0.11.0
+IPython
+langchain-core
+#langchain-openai
+langchain-groq
+pydantic
