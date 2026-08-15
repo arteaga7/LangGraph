@@ -19,8 +19,9 @@ def buscar_info_interna(query: str) -> str:
 tools = [buscar_info_interna]
 
 
-class MessageGraph(TypedDict):
-    pass
+class MessagesState(TypedDict):
+    is_valid: bool
+    messages: str
 
 
 def react_agent_node(state):
