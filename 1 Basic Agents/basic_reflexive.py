@@ -1,5 +1,5 @@
 """
-reflexive_agent.py
+basic_reflexive.py
 Agente de reflexión para generar y evaluar publicaciones de LinkedIn
 mediante un proceso iterativo de reflexión. Este nodo son 2 nodos realmente.
 El nodo generation genera el texto y el nodo reflection evalua el texto del primer nodo.
