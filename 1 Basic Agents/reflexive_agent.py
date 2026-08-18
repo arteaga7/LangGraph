@@ -1,16 +1,21 @@
-import os
-from typing import TypedDict, Annotated, Literal
+"""
+reflexive_agent.py
+Agente de reflexión para generar y evaluar una consulta SQL mediante un proceso iterativo de reflexión.
+Este nodo son 2 nodos realmente. El nodo 'generator_node' genera el texto y el nodo 'evaluator_node'
+evalua el texto (la salida) del primer nodo.
+"""
+from typing import TypedDict, Literal
 from pydantic import BaseModel, Field
-
 from langchain_groq import ChatGroq
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, START, END
 from dotenv import load_dotenv
 load_dotenv()
+
 # 1. Definir el modelo LLM
 llm = ChatGroq(
-    # modelos: llama-3.1-8b-instant, qwen-2.5-coder-32b, llama-3.3-70b-versatile
-    model="llama-3.3-70b-versatile",
+    # modelos: openai/gpt-oss-20b, llama-3.3-70b-versatile
+    model="openai/gpt-oss-20b",
     temperature=0
 )
 
