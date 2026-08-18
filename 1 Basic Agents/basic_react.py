@@ -1,6 +1,5 @@
 """
-basic_react.py
-Agente ReAct con 2 tools.
+basic_react.py: Agente ReAct con 2 tools.
 """
 # Importa utilidades para cargar variables de entorno desde un fichero .env
 from dotenv import load_dotenv
@@ -17,13 +16,13 @@ from langchain_core.messages import HumanMessage
 # END: estado terminal; StateGraph: constructor de grafos
 from langgraph.graph import END, StateGraph
 
-load_dotenv()  # Carga variables de entorno (por ejemplo: OPENAI_API_KEY, TAVILY_API_KEY) desde .env al entorno
+load_dotenv()  # Carga variables de entorno
 
 
 @tool  # Herramienta para realizar cálculos matemáticos
 def calculator(expression: str) -> float:
     """
-    Evalúa una expresión matemática simple. Debes usar esta herrammienta siempre si el usuario te pide un cálculo matemático
+    Evalúa una expresión matemática simple. Debes usar esta herrammienta cuando el usuario te pide un cálculo matemático
     Ejemplo:
     "2 + 3 * 5"
     """
@@ -66,12 +65,12 @@ def run_agent_reasoning_engine(state: MessagesState) -> MessagesState:
     return {"messages": [response]}
 
 
-# Nodo actuar (tools)
+# Nodo tools
 # Crea el nodo que ejecutará herramientas cuando el LLM las solicite
 tool_node = ToolNode(tools)
 
 AGENT_REASON = "agent_reason"  # Nombre del nodo de razonamiento del agente
-ACT = "act_tools"  # Nombre del nodo de acción (ejecución de herramientas)
+ACT = "act_tools"       # Nombre del nodo de acción (ejecución de herramientas)
 
 
 # Función de enrutado condicional: decide si el flujo termina o usa tools

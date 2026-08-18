@@ -1,8 +1,8 @@
+# basic_agent.py: Basic agent with LangGraph and without LLM
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, START, END
-import os
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
+
 
 load_dotenv()
 
