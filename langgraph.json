@@ -1,7 +1,7 @@
 {
     "dependencies": ["."],
     "graphs": {
-        "reflexive_agent": "./1 Basic Agents/basic_react.py:graph"
+        "reflexive_agent": "./1 Basic Agents/basic_reflexive.py:graph"
     },
     "python_version": "3.13"
 }

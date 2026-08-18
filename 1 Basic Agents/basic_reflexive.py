@@ -2,18 +2,16 @@
 basic_reflexive.py
 Agente de reflexión para generar y evaluar publicaciones de LinkedIn
 mediante un proceso iterativo de reflexión. Este nodo son 2 nodos realmente.
-El nodo generation genera el texto y el nodo reflection evalua el texto del primer nodo.
+El nodo 'generation' genera el texto y el nodo 'reflection' evalua el texto del primer nodo.
 """
 from typing import TypedDict, Annotated
 from dotenv import load_dotenv
 # BaseMessage es la clase base para mensajes; HumanMessage representa mensajes del usuario
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-
 # Reductor que fusiona listas de mensajes (añade en lugar de reemplazar)
 from langgraph.graph.message import add_messages
 from langgraph.graph import StateGraph, START, END
-
 # from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 # Para importar con Ollama
@@ -27,7 +25,7 @@ generation_prompt = ChatPromptTemplate.from_messages(
         # Mensaje de sistema: define al modelo como asistente que escribe publicaciones
         (
             "system",
-            "Eres un asistente de influencer tecnológico de LinkedIn encargado de escribir excelentes publicaciones. "
+            "Eres un asistente de influencer tecnológico de LinkedIn encargado de escribir excelentes publicaciones."
             "Genera la mejor publicación posible según la petición del usuario. "
             "Si el usuario aporta crítica, responde con una versión revisada de tus intentos anteriores.",
         ),
@@ -54,8 +52,8 @@ reflection_prompt = ChatPromptTemplate.from_messages(
 
 
 llm = ChatGroq(
-    # modelos: llama-3.1-8b-instant, qwen-2.5-coder-32b, llama-3.3-70b-versatile
-    model="llama-3.3-70b-versatile",
+    # modelos: openai/gpt-oss-20b, llama-3.3-70b-versatile
+    model="openai/gpt-oss-20b",
     temperature=0
 )
 
@@ -67,11 +65,9 @@ generate_chain = generation_prompt | llm
 # Flujo: reflection_prompt formatea los mensajes → llm genera crítica y recomendaciones
 reflect_chain = reflection_prompt | llm
 
-# Esquema del estado del grafo: un diccionario con clave "messages"
+
+# Estado del grafo: un diccionario con clave "messages"
 # Annotated con add_messages hace que los mensajes se acumulen en lugar de sustituirse
-
-
-# Estado del grafo
 class MessageGraph(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
 
@@ -89,21 +85,9 @@ def generation_node(state: MessageGraph):
 # y devuelve la crítica como mensaje humano para que el siguiente ciclo la use
 def reflection_node(state: MessageGraph):
     # Invocamos la cadena de reflexión con todo el historial
-    res = reflect_chain.invoke({"messages": state["messages"]})
+    result = reflect_chain.invoke({"messages": state["messages"]})
     # Envolvemos la respuesta en HumanMessage para simular feedback de humano/externo
-    return {"messages": [HumanMessage(content=res.content)]}
-
-
-builder = StateGraph(state_schema=MessageGraph)
-
-GENERATE = "generate"  # Nodo que genera o mejora la publicación
-REFLECT = "reflect"    # Nodo que evalúa y critica la publicación
-
-# Añadimos los dos nodos al grafo especificando la función que se ejecutará en cada nodo
-builder.add_node(GENERATE, generation_node)
-builder.add_node(REFLECT, reflection_node)
-
-builder.set_entry_point(GENERATE)
+    return {"messages": [HumanMessage(content=result.content)]}
 
 
 # Función de decisión: determina si continuar iterando o finalizar
@@ -114,14 +98,23 @@ def should_continue(state: MessageGraph):
     if len(state["messages"]) > 4:
         return END
     # Si no, pasamos al nodo de reflexión para otra ronda de mejora
-    return REFLECT
+    return "reflect"
 
 
-# Arista condicional desde GENERATE: según should_continue va a END o a REFLECT
-builder.add_conditional_edges(GENERATE, should_continue)
+builder = StateGraph(state_schema=MessageGraph)
+
+# Añadimos los dos nodos al grafo especificando la función que se ejecutará en cada nodo
+builder.add_node("generate", generation_node)
+builder.add_node("reflect", reflection_node)
+
+builder.set_entry_point("generate")
+
+
+# Arista condicional desde "generate": según should_continue va a END o a REFLECT
+builder.add_conditional_edges("generate", should_continue)
 
 # Arista fija: tras reflexionar, siempre volvemos a generar
-builder.add_edge(REFLECT, GENERATE)
+builder.add_edge("reflect", "generate")
 
 graph = builder.compile()
 

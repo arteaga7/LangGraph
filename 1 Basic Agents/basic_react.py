@@ -74,7 +74,7 @@ tool_node = ToolNode(tools)
 def should_continue(state: dict) -> str:
     # Si el último mensaje NO contiene llamadas a herramientas...
     if not state["messages"][-1].tool_calls:
-        return END  # ...termina el flujo (no hay acciones que ejecutar)
+        return END      # ...termina el flujo (no hay acciones que ejecutar)
     return "act_tools"  # Si hay tool_calls, continúa hacia el nodo de acción
 
 
@@ -87,7 +87,7 @@ flow.add_node("agent_reason", run_agent_reasoning_engine)
 # Añade el nodo de acción (ToolNode) que ejecuta herramientas
 flow.add_node("act_tools", tool_node)
 
-flow.add_conditional_edges(  # Añade aristas condicionales que salen del nodo de razonamiento
+flow.add_conditional_edges(
     "agent_reason",  # Nodo origen (desde donde se decide)
     should_continue  # Función que inspecciona el estado y devuelve el "siguiente" destino
 )
@@ -103,14 +103,29 @@ graph = flow.compile()  # Compila el grafo en una aplicación ejecutable (Runnab
 
 if __name__ == "__main__":
     print("Hola agente ReAct")
-    res = graph.invoke(  # Ejecuta el grafo pasando un estado inicial con un mensaje humano
-        {
-            "messages": [
-                HumanMessage(
-                    content="quiero que sumes 10 y 23, el resultado quiero que lo escribas en un fichero nuevo en la ruta '/home/ant/resultado.txt'"
-                )
-            ]
-        }
+    inputs = {
+        "messages": [
+            HumanMessage(
+                content="quiero que sumes 10 y 23, el resultado quiero que lo escribas en un fichero nuevo en la ruta '/home/ant/resultado.txt'")
+        ]
+    }
+
+    # Transmitimos los eventos para ver la secuencia Reason -> Act -> Observe
+    for chunk in graph.stream(inputs, stream_mode="values"):
+        last_message = chunk["messages"][-1]
+        print(f"\n[{last_message.__class__.__name__}]:")
+        # Si el modelo decidió hacer llamadas a herramientas (ReAct: Act)
+        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+            for tool_call in last_message.tool_calls:
+                print(
+                    f"  🔧 Llamando a la herramienta: '{tool_call['name']}' con argumentos: {tool_call['args']}")
+        else:
+            print(f"  {last_message.content}")
+
+    """
+    result = graph.invoke(  # Ejecuta el grafo pasando un estado inicial con un mensaje humano
+        inputs
     )
     # Imprime el contenido del último mensaje generado por el agente
-    print(res["messages"][-1].content)
+    #print(result["messages"][-1].content)
+    """
