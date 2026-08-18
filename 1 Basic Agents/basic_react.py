@@ -44,8 +44,8 @@ def write_text_file(path: str, content: str) -> str:
 tools = [calculator, write_text_file]
 
 llm = ChatGroq(
-    # modelos: llama-3.1-8b-instant, qwen-2.5-coder-32b, llama-3.3-70b-versatile
-    model="llama-3.3-70b-versatile",
+    # modelos: qwen-2.5-coder-32b, llama-3.3-70b-versatile
+    model="openai/gpt-oss-20b",
     temperature=0
 ).bind_tools(tools)
 
@@ -69,41 +69,34 @@ def run_agent_reasoning_engine(state: MessagesState) -> MessagesState:
 # Crea el nodo que ejecutará herramientas cuando el LLM las solicite
 tool_node = ToolNode(tools)
 
-AGENT_REASON = "agent_reason"  # Nombre del nodo de razonamiento del agente
-ACT = "act_tools"       # Nombre del nodo de acción (ejecución de herramientas)
-
 
 # Función de enrutado condicional: decide si el flujo termina o usa tools
 def should_continue(state: dict) -> str:
     # Si el último mensaje NO contiene llamadas a herramientas...
     if not state["messages"][-1].tool_calls:
         return END  # ...termina el flujo (no hay acciones que ejecutar)
-    return ACT  # Si hay tool_calls, continúa hacia el nodo de acción
+    return "act_tools"  # Si hay tool_calls, continúa hacia el nodo de acción
 
 
 # Crea un grafo cuyo estado sigue el esquema MessagesState (usa clave "messages")
 flow = StateGraph(MessagesState)
 
 # Añade el nodo de razonamiento al grafo
-flow.add_node(AGENT_REASON, run_agent_reasoning_engine)
+flow.add_node("agent_reason", run_agent_reasoning_engine)
 
 # Añade el nodo de acción (ToolNode) que ejecuta herramientas
-flow.add_node(ACT, tool_node)
+flow.add_node("act_tools", tool_node)
 
 flow.add_conditional_edges(  # Añade aristas condicionales que salen del nodo de razonamiento
-    AGENT_REASON,  # Nodo origen (desde donde se decide)
-    should_continue,  # Función que inspecciona el estado y devuelve el "siguiente" destino
-    {  # Mapa de posibles salidas de `should_continue` a destinos del grafo
-        END: END,  # Si devuelve END -> finaliza
-        ACT: ACT,  # Si devuelve ACT -> pasa a ejecutar herramientas
-    },
+    "agent_reason",  # Nodo origen (desde donde se decide)
+    should_continue  # Función que inspecciona el estado y devuelve el "siguiente" destino
 )
 
 # Define que el flujo comience en el nodo de razonamiento
-flow.set_entry_point(AGENT_REASON)
+flow.set_entry_point("agent_reason")
 
 # Tras ejecutar tools, vuelve al nodo de razonamiento (ciclo ReAct)
-flow.add_edge(ACT, AGENT_REASON)
+flow.add_edge("act_tools", "agent_reason")
 
 graph = flow.compile()  # Compila el grafo en una aplicación ejecutable (Runnable)
 
