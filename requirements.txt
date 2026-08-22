@@ -7,3 +7,7 @@ langchain-core
 #langchain-openai
 langchain-groq
 pydantic
+langgraph-checkpoint-sqlite
+chromadb
+langchain-chroma
+langchain-ollama
