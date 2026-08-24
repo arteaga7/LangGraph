@@ -7,15 +7,14 @@ El nodo 'generation' genera el texto y el nodo 'reflection' evalua el texto del 
 from typing import TypedDict, Annotated
 from dotenv import load_dotenv
 # BaseMessage es la clase base para mensajes; HumanMessage representa mensajes del usuario
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 # Reductor que fusiona listas de mensajes (añade en lugar de reemplazar)
 from langgraph.graph.message import add_messages
 from langgraph.graph import StateGraph, START, END
 # from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
-# Para importar con Ollama
-# from langchain_ollama import ChatOllama
+
 
 load_dotenv()
 
@@ -50,12 +49,7 @@ reflection_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-
-llm = ChatGroq(
-    # modelos: openai/gpt-oss-20b, llama-3.3-70b-versatile
-    model="openai/gpt-oss-20b",
-    temperature=0
-)
+llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0)
 
 # Cadena de generación: combina el prompt de generación con el LLM mediante el operador |
 # Flujo: generation_prompt formatea los mensajes → llm genera la respuesta
@@ -94,7 +88,7 @@ def reflection_node(state: MessageGraph):
 # Limita las iteraciones para evitar bucles infinitos (ejemplo:máx. ~3 ciclos con 6 mensajes)
 # Cada ciclo tiene 2 mensajes (de IA y de Human)
 def should_continue(state: MessageGraph):
-    # Si hay más de 6 mensajes, damos por finalizado el proceso
+    # Si hay más de 4 mensajes, damos por finalizado el proceso
     if len(state["messages"]) > 4:
         return END
     # Si no, pasamos al nodo de reflexión para otra ronda de mejora
@@ -107,16 +101,18 @@ builder = StateGraph(state_schema=MessageGraph)
 builder.add_node("generate", generation_node)
 builder.add_node("reflect", reflection_node)
 
-builder.set_entry_point("generate")
-
+builder.add_edge(START, "generate")
 
 # Arista condicional desde "generate": según should_continue va a END o a REFLECT
-builder.add_conditional_edges("generate", should_continue)
+builder.add_conditional_edges("generate", should_continue, {
+                              "reflect": "reflect", END: END})
 
 # Arista fija: tras reflexionar, siempre volvemos a generar
 builder.add_edge("reflect", "generate")
 
 graph = builder.compile()
+graph.get_graph().draw_mermaid_png(output_file_path="./img/basic_reflexive.png")
+
 
 if __name__ == "__main__":
     print("\n--- Ejecutando Agente Reflexivo ---")
@@ -137,8 +133,6 @@ Después de mucha espera, por fin está disponible y facilita enormemente la imp
     # Invocamos el grafo completo con la entrada
     response = graph.invoke(inputs)
 
-    # Impresión limpia del resultado final
-    print("\n--- Historial Completo de Mensajes ---")
-    for i, msg in enumerate(response["messages"]):
-        role = "HUMANO/FEEDBACK" if isinstance(msg, HumanMessage) else "AGENTE"
-        print(f"\n[{i+1}] {role}:\n{msg.content}")
+    for message in response["messages"]:
+        print(f"\n{message.__class__.__name__}:")
+        print(message.content)
