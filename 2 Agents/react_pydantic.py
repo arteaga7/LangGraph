@@ -1,5 +1,6 @@
 """
-react_pydantic.py: Agente ReAct con 2 tools utilizando Pydantic y un nodo evaluador.
+react_pydantic.py: Agente ReAct con 2 tools utilizando Pydantic y un nodo evaluador (necesario)
+para estructurar la respuesta final.
 """
 from typing import Literal
 from pydantic import BaseModel, Field
@@ -45,11 +46,7 @@ tools = [multiply, search_word_length]
 
 
 # 3. Inicialización del modelo con Herramientas y Salida Estructurada
-llm = ChatGroq(
-    # modelos: qwen-2.5-coder-32b, llama-3.3-70b-versatile
-    model="openai/gpt-oss-20b",
-    temperature=0
-)
+llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0)
 
 # Unimos las herramientas al LLM base para las decisiones intermedias
 llm_with_tools = llm.bind_tools(tools)
@@ -129,7 +126,8 @@ workflow.add_edge("evaluator", END)
 
 # Compilar el Grafo
 graph = workflow.compile()
-
+graph.get_graph().draw_mermaid_png(
+    output_file_path="./2 Agents/react_pydantic.png")
 
 # 7. Ejecución de Ejemplo
 if __name__ == "__main__":

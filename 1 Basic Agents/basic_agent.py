@@ -47,3 +47,4 @@ builder.add_edge('node_2', END)
 builder.add_edge('node_3', END)
 
 graph = builder.compile()
+# graph.get_graph().draw_mermaid_png(output_file_path="./1 Basic Agents/basic_agent.png")

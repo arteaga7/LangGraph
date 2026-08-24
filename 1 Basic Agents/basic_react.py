@@ -99,7 +99,7 @@ flow.set_entry_point("agent_reason")
 flow.add_edge("act_tools", "agent_reason")
 
 graph = flow.compile()  # Compila el grafo en una aplicación ejecutable (Runnable)
-
+# graph.get_graph().draw_mermaid_png(output_file_path="./1 Basic Agents/basic_react.png")
 
 if __name__ == "__main__":
     print("Hola agente ReAct")
