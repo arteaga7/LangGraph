@@ -5,7 +5,7 @@ para estructurar la respuesta final.
 from typing import Literal
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
-from langchain_core.messages import SystemMessage, HumanMessage, BaseMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_groq import ChatGroq
 from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.prebuilt import ToolNode
@@ -65,7 +65,7 @@ def agent_node(state: MessagesState):
     return {"messages": [response]}
 
 
-def evaluation_node(state: MessagesState):
+def evaluator_node(state: MessagesState):
     """
     Nodo de evaluación final que procesa la historia de mensajes 
     y la formatea según el esquema EvaluationResult usando Pydantic.
@@ -103,7 +103,7 @@ workflow = StateGraph(MessagesState)
 # Agregar nodos
 workflow.add_node("agent", agent_node)
 workflow.add_node("tools", ToolNode(tools))
-workflow.add_node("evaluator", evaluation_node)
+workflow.add_node("evaluator", evaluator_node)
 
 # Establecer punto de entrada
 workflow.add_edge(START, "agent")
@@ -127,7 +127,7 @@ workflow.add_edge("evaluator", END)
 # Compilar el Grafo
 graph = workflow.compile()
 graph.get_graph().draw_mermaid_png(
-    output_file_path="./2 Agents/react_pydantic.png")
+    output_file_path="./img/react_pydantic.png")
 
 # 7. Ejecución de Ejemplo
 if __name__ == "__main__":
@@ -142,3 +142,11 @@ if __name__ == "__main__":
     for chunk in graph.stream(inputs, stream_mode="values"):
         last_msg = chunk["messages"][-1]
         print(f"[{last_msg.type.upper()}]: {last_msg.content}")
+
+    """
+    result = graph.invoke(  # Ejecuta el grafo pasando un estado inicial con un mensaje humano
+        inputs
+    )
+    # Imprime el contenido del último mensaje generado por el agente
+    print(result["messages"][-1].content)
+    """
