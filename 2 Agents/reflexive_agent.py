@@ -12,12 +12,8 @@ from langgraph.graph import StateGraph, START, END
 from dotenv import load_dotenv
 load_dotenv()
 
-# 1. Definir el modelo LLM
-llm = ChatGroq(
-    # modelos: openai/gpt-oss-20b, llama-3.3-70b-versatile
-    model="openai/gpt-oss-20b",
-    temperature=0
-)
+# 1. Definir el modelo
+llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0)
 
 
 # 2. Definir el Estado del Grafo
@@ -46,10 +42,15 @@ def generator_node(state: AgentState) -> dict:
 
     if not draft:
         # Generación inicial
-        prompt = f"Genera una consulta SQL limpia para responder a esta solicitud: {task}"
+        prompt = f"""
+        Genera una consulta SQL PostgreSQL para responder a esta solicitud:
+        {task}
+        Devuelve únicamente el código SQL.
+        """
     else:
         # Optimización basada en retroalimentación
         prompt = (
+            f"Tarea original:\n{task}\n\n"
             f"Tu borrador previo de SQL fue:\n{draft}\n\n"
             f"Retroalimentación recibida:\n{feedback}\n\n"
             f"Corrige la consulta SQL para solucionar los problemas indicados."
@@ -57,7 +58,13 @@ def generator_node(state: AgentState) -> dict:
 
     messages = [
         SystemMessage(
-            content="Eres un experto en bases de datos PostgreSQL. Devuelve únicamente el código SQL."),
+            content="""
+            Eres un experto en PostgreSQL.
+            Genera únicamente código SQL válido.
+            No inventes columnas o tablas si el schema proporcionado no contiene la información necesaria.
+            Si el schema no es suficiente para generar una consulta confiable, indícalo claramente.
+            """
+        ),
         HumanMessage(content=prompt)
     ]
 
@@ -85,7 +92,8 @@ def evaluator_node(state: AgentState) -> dict:
     1. Debe usar sintaxis válida de PostgreSQL.
     2. Debe usar alias claros en los JOINs.
     3. NUNCA debe usar 'SELECT *', siempre debe explicitar las columnas.
-    4. Si hay agregaciones (SUM, COUNT, etc.), debe incluir GROUP BY explícito.
+    4. Si utiliza funciones de agregación junto con columnas no agregadas,
+    debe incluir un GROUP BY explícito para esas columnas.
     """
 
     evaluation: Evaluation = evaluator_llm.invoke([
@@ -103,7 +111,7 @@ def evaluator_node(state: AgentState) -> dict:
 def route_evaluation(state: AgentState) -> Literal["generator", "__end__"]:
     # Límite de seguridad de 3 iteraciones para evitar ciclos infinitos
     if state["is_satisfactory"] or state["iterations"] >= 3:
-        return END
+        return "__end__"
     return "generator"
 
 
@@ -124,12 +132,12 @@ workflow.add_conditional_edges(
     route_evaluation,
     {
         "generator": "generator",
-        END: END
+        "__end__": END
     }
 )
 
 graph = workflow.compile()
-
+graph.get_graph().draw_mermaid_png(output_file_path="./img/reflexive_agent.png")
 
 # 7. Ejecución de prueba
 if __name__ == "__main__":

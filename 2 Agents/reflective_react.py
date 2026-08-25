@@ -12,6 +12,7 @@ from langchain_groq import ChatGroq
 from langgraph.graph.message import add_messages
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
+from pathlib import Path
 load_dotenv()
 
 
@@ -31,7 +32,7 @@ def calculator(expression: str) -> str:
     Ejemplo:
     "2 ** 4 + 1"
     """
-    return eval(expression)
+    return str(eval(expression))
 
 
 tools = [buscar_info_interna, calculator]
@@ -65,6 +66,7 @@ class AgentState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
     iterations: int
     is_valid: bool
+    user_query: str
 
 
 # ---------------------------------------------------------
@@ -105,7 +107,9 @@ def evaluator_node(state: AgentState):
     eval_prompt = (
         f"Pregunta: {truncated_query}\n"
         f"Respuesta a evaluar: {truncated_draft}\n\n"
-        "Evalúa si la respuesta es correcta, completa y no inventa información."
+        "Evalúa si la respuesta final responde correctamente a la pregunta. "
+        "Considera que puede haber utilizado herramientas. "
+        "No penalices la respuesta por ser breve si la pregunta es sencilla."
     )
 
     try:
@@ -128,15 +132,23 @@ def evaluator_node(state: AgentState):
 
     except Exception as e:
         # Fallback de seguridad: Si falla el parser por recortes de tokens u otro error,
-        # asumimos la respuesta como válida para no romper el flujo del Grafo.
-        print(
-            f"⚠️ Error en el evaluador (posible límite de tokens alcanzado): {e}")
-        return {"is_valid": True}
-
+        # asumimos la respuesta como no válida para no romper el flujo del Grafo.
+        print(f"⚠️ Error en el evaluador: {e}")
+        return {
+            "messages": [
+                HumanMessage(
+                    content="[Feedback Evaluador]: No fue posible validar la respuesta."
+                )
+            ],
+            "is_valid": False,
+            "iterations": state["iterations"] + 1
+        }
 
 # ---------------------------------------------------------
 # 5. LÓGICA DE ENRUTAMIENTO (ROUTERS)
 # ---------------------------------------------------------
+
+
 def route_from_react(state: AgentState) -> Literal["tools", "evaluator"]:
     """Decide si ir a las herramientas o enviar el borrador al evaluador."""
     last_message = state["messages"][-1]
@@ -151,7 +163,7 @@ def route_from_evaluator(state: AgentState) -> Literal["react", "__end__"]:
     """Decide si terminar o forzar una nueva iteración."""
     # Condición de salida exitosa o límite máximo de iteraciones (2 intentos) alcanzado
     if state.get("is_valid") or state["iterations"] >= 2:
-        return END
+        return "__end__"
     return "react"
 
 
@@ -166,7 +178,8 @@ builder.add_node("evaluator", evaluator_node)
 builder.add_edge(START, "react")
 # En lugar de usar prebuilt.tools_condition, usamos nuestro propio router
 # para desviar el flujo al "evaluator" en vez de a END.
-builder.add_conditional_edges("react", route_from_react)
+builder.add_conditional_edges("react", route_from_react,
+                              {"tools": "tools", "evaluator": "evaluator"})
 
 builder.add_edge("tools", "react")
 
@@ -175,6 +188,8 @@ builder.add_conditional_edges("evaluator", route_from_evaluator,
                               {"react": "react", END: END})
 
 graph = builder.compile()
+Path("./img").mkdir(parents=True, exist_ok=True)
+graph.get_graph().draw_mermaid_png(output_file_path="./img/reflective_react.png")
 
 if __name__ == "__main__":
     print("Hola agente Reflective+ReAct")
