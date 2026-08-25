@@ -1,8 +1,10 @@
 """
 asyncronous.py
-Este script añade un nodo adicional B2 en la primera rama
+Grafo con nodos (B y B2) ejecutandose en paralelo con C.
 """
-from langgraph.graph import StateGraph, START, END  # Importa el constructor de grafos de LangGraph y los nodos especiales START y END
+from pathlib import Path
+# Importa el constructor de grafos de LangGraph y los nodos especiales START y END
+from langgraph.graph import StateGraph, START, END
 # TypedDict permite definir un diccionario con estructura tipada (clave y tipo de valor)
 from typing_extensions import TypedDict
 # Importa tipos: Annotated permite añadir metadata a un tipo y Any significa “cualquier tipo”
@@ -52,7 +54,9 @@ builder.add_edge("b", "b2")
 builder.add_edge(["b2", "c"], "d")
 builder.add_edge("d", END)
 graph = builder.compile()
-graph.get_graph().draw_mermaid_png(output_file_path="./2 Agents/asyncronous.png")
+
+Path("./img").mkdir(parents=True, exist_ok=True)
+graph.get_graph().draw_mermaid_png(output_file_path="./img/asyncronous.png")
 
 if __name__ == "__main__":
     print("Hola grafo asincrono 2")
