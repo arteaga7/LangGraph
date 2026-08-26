@@ -11,3 +11,8 @@ langgraph-checkpoint-sqlite
 chromadb
 langchain-chroma
 langchain-ollama
+psycopg2-binary
+polars
+pandas
+sqlalchemy
+pyarrow
