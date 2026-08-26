@@ -2,22 +2,17 @@
 sliding_memory.py
 Agente simple con ventana de memoria deslizante (en RAM con MemorySaver) en LangGraph.
 """
+from pathlib import Path
 from langgraph.graph import MessagesState, StateGraph, START
 from langgraph.checkpoint.memory import MemorySaver
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 from langchain_core.messages import trim_messages
 from dotenv import load_dotenv
 load_dotenv()
 
 llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0.2)
-
-
-class WindowedState(MessagesState):
-    pass
-
-
-workflow = StateGraph(state_schema=WindowedState)
+workflow = StateGraph(state_schema=MessagesState)
 
 trimmer = trim_messages(
     strategy="last",
@@ -43,12 +38,15 @@ workflow.add_edge(START, "chatbot")
 
 # Compilar el grafo
 memory = MemorySaver()
-app = workflow.compile(checkpointer=memory)
+graph = workflow.compile(checkpointer=memory)
+Path("./img").mkdir(parents=True, exist_ok=True)
+graph.get_graph().draw_mermaid_png(output_file_path="./img/sliding_memory.png")
 
 
 def chat(message, thread_id="sesion_terminal"):
     config = {"configurable": {"thread_id": thread_id}}
-    result = app.invoke({"messages": [HumanMessage(content=message)]}, config)
+    result = graph.invoke(
+        {"messages": [HumanMessage(content=message)]}, config)
     return result["messages"][-1].content
 
 

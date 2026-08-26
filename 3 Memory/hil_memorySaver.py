@@ -79,7 +79,7 @@ graph = builder.compile(  # Compila el builder en un grafo ejecutable.
 )
 
 # Exporta un PNG del grafo (útil para doc/explicación).
-graph.get_graph().draw_mermaid_png(output_file_path="./3 Memory/graph_hil.png")
+graph.get_graph().draw_mermaid_png(output_file_path="./img/graph_hil.png")
 
 if __name__ == "__main__":
     # Define un "thread_id" para aislar la sesión/ejecución del grafo.

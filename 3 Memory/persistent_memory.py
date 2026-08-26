@@ -2,6 +2,7 @@
 persistent_memory.py
 Agente simple con memoria persistente usando Sqlite en LangGraph.
 """
+from pathlib import Path
 from langgraph.graph import MessagesState, StateGraph, START
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_groq import ChatGroq
@@ -30,18 +31,21 @@ workflow.add_edge(START, "chatbot")
 # Compilar el grafo
 conn = sqlite3.connect(SQLITE_DB, check_same_thread=False)
 memory = SqliteSaver(conn)
-app = workflow.compile(checkpointer=memory)
+graph = workflow.compile(checkpointer=memory)
+# Path("./img").mkdir(parents=True, exist_ok=True)
+# graph.get_graph().draw_mermaid_png(output_file_path="./img/persistent_memory.png")
 
 
 def chat(message, thread_id="sesion_terminal"):
     config = {"configurable": {"thread_id": thread_id}}
-    result = app.invoke({"messages": [HumanMessage(content=message)]}, config)
+    result = graph.invoke(
+        {"messages": [HumanMessage(content=message)]}, config)
     return result["messages"][-1].content
 
 
 if __name__ == "__main__":
     print("Chat en terminal (escribe 'salir' para terminar)\n")
-    session_id = "sesion_terminal2"
+    session_id = "sesion_2"
 
     while True:
         try:
