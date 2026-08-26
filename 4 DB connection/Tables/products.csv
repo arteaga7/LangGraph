@@ -1,0 +1,5 @@
+product_id, product_name, price, stock_quantity
+cam_01,camisa manga larga,200,50
+cam_02,camisa manga cora,100,20
+pan_01,pantalon largo,450,15
+pan_02,pantalon corto,250,30

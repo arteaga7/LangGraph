@@ -25,17 +25,20 @@ DATABASE_URL = (
 engine = create_engine(DATABASE_URL)
 POSTGRES_SCHEMA = "public"
 # Columnas que deben convertirse a fecha
-col_date = ['created']
+col_date = ['created_at']
 
 # Primary keys de cada tabla
 primary_keys = {
-    'messages': 'id',
+    'order_items': 'id',
+    'orders': 'order_id',
+    'products': 'product_id',
     'users': 'user_id'
 }
 
 # Foreign keys de cada tabla ('table': ['fk_table': 'fk_column'])
 foreign_keys = {
-    'messages': [{'users': 'user_id'}]
+    # 'users': [{'orders': 'order_id'}],
+    # 'products': [{'order_items': 'product_id'}]
 }
 
 
@@ -241,8 +244,8 @@ def main():
             print("=" * 25)
 
     # Create foreign keys
-    print("\n" + "=" * 40 + "🔗 CREANDO FOREIGN KEYS" + "=" * 40)
-    create_foreign_keys(engine, foreign_keys)
+    # print("\n" + "=" * 40 + "🔗 CREANDO FOREIGN KEYS" + "=" * 40)
+    # create_foreign_keys(engine, foreign_keys)
 
     print("\n--- PROCESO FINALIZADO ---")
 

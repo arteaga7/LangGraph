@@ -1,2 +1,3 @@
-user_id,name
-ID1,Antonio
+user_id, name, email, created_at
+u1,Antonio,antonio@email.com,20260503
+u2,Jan,jan@email.com,20260802
